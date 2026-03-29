@@ -12,13 +12,10 @@ export function handleConnection(socket, io) {
             waitingPlayer.socketId = socket.id
             socket.emit('waiting', { message: 'waiting for opponent...' })
         } else {
-            const opponentId = waitingPlayer.socketId
-            waitingPlayer.socketId = null
-
             const matchId = randomUUID()
             const match = {
                 id: matchId,
-                white: opponentId,
+                white: waitingPlayer.socketId,
                 black: socket.id,
                 moves: [],
                 turn: 'white',
@@ -32,13 +29,15 @@ export function handleConnection(socket, io) {
       `).run(matchId, opponentId, socket.id)
 
             socket.join(matchId)
-            io.sockets.sockets.get(opponentId)?.join(matchId)
+            io.sockets.sockets.get(waitingPlayer)?.join(matchId)
 
             io.to(matchId).emit('match_start', {
                 matchId,
                 white: opponentId,
                 black: socket.id,
             })
+
+            waitingPlayer.socketId = null
         }
     })
 
