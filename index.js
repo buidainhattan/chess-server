@@ -2,7 +2,7 @@ import express from 'express'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 
-import { handleConnection } from './matchManager.js'
+import { handleConnection } from './gateways/matchManager.js'
 import statRouter from './routes/stats.js'
 
 const app = express()

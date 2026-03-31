@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto'
-import db from './db.js'
+import db from '../configs/db.js'
+import { Match } from '../models/match.js'
 
 const waitingPlayer = { socketId: null }
 const activeMatches = new Map()
@@ -7,35 +8,20 @@ const privateRooms = new Map()
 
 export function handleConnection(socket, io) {
 
-    socket.on('join_queue', () => {
+    socket.on('join_match_making', () => {
         if (waitingPlayer.socketId === null) {
             waitingPlayer.socketId = socket.id
             socket.emit('waiting', { message: 'waiting for opponent...' })
         } else {
             const matchId = randomUUID()
-            const match = {
-                id: matchId,
-                white: waitingPlayer.socketId,
-                black: socket.id,
-                moves: [],
-                turn: 'white',
-            }
+            const match = Match(matchId, waitingPlayer.socketId, socket.id)
 
             activeMatches.set(matchId, match)
 
-            db.prepare(`
-        INSERT INTO matches (id, player_white, player_black)
-        VALUES (?, ?, ?)
-      `).run(matchId, opponentId, socket.id)
-
-            socket.join(matchId)
             io.sockets.sockets.get(waitingPlayer)?.join(matchId)
+            socket.join(matchId)
 
-            io.to(matchId).emit('match_start', {
-                matchId,
-                white: opponentId,
-                black: socket.id,
-            })
+            io.to(matchId).emit('match_start', match)
 
             waitingPlayer.socketId = null
         }
@@ -64,29 +50,14 @@ export function handleConnection(socket, io) {
         privateRooms.delete(code)
 
         const matchId = randomUUID()
-        const match = {
-            id: matchId,
-            white: room.hostId,
-            black: socket.id,
-            moves: [],
-            turn: 'white',
-        }
+        const match = Match(matchId, room.hostId, socket.id)
 
         activeMatches.set(matchId, match)
-
-        db.prepare(`
-    INSERT INTO matches (id, player_white, player_black)
-    VALUES (?, ?, ?)
-  `).run(matchId, room.hostId, socket.id)
 
         socket.join(matchId)
         io.sockets.sockets.get(room.hostId)?.join(matchId)
 
-        io.to(matchId).emit('match_start', {
-            matchId,
-            white: room.hostId,
-            black: socket.id,
-        })
+        io.to(matchId).emit('match_start', match)
     })
 
     socket.on('move', ({ matchId, move }) => {
@@ -104,12 +75,12 @@ export function handleConnection(socket, io) {
             return
         }
 
-        match.moves.push(move)
-        match.turn = match.turn === 'white' ? 'black' : 'white'
+        match.updateMatchState(move)
 
         socket.to(matchId).emit('opponent_move', { move })
     })
 
+    // #TODO: Optimize
     socket.on('resign', ({ matchId }) => {
         endMatch(matchId, socket.id === activeMatches.get(matchId)?.white ? 'black' : 'white', io)
     })
