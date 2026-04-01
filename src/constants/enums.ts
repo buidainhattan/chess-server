@@ -1,0 +1,5 @@
+export enum MATCH_MAKING_STATUS {
+  SEARCHING,
+  MATCH_FOUND,
+  ERROR,
+}
