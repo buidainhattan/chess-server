@@ -1,9 +1,8 @@
 import { Router, type Request, type Response } from "express";
-import db from "../configs/db.js";
+import db from "../db/db.js";
 
 const router: Router = Router();
 
-// Define an interface for the URL parameters
 interface PlayerParams {
   playerId: string;
 }

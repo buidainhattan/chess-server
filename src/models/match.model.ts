@@ -1,4 +1,6 @@
-import db from "../configs/db.js";
+export interface Player {
+  playerId: string | null;
+}
 
 export class Match {
   public id: string;
@@ -13,12 +15,6 @@ export class Match {
     this.playerBlackId = blackId;
     this.turn = "white";
     this.moves = [];
-
-    db.prepare(
-      `
-        INSERT INTO matches (id, player_white, player_black)
-        VALUES (?, ?, ?)`,
-    ).run(this.id, this.playerWhiteId, this.playerBlackId);
   }
 
   updateMatchState(newMove: string): void {
