@@ -1,4 +1,3 @@
-import db from "../db/db.js";
 import { MATCH_MAKING_STATUS } from "../constants/enums.js";
 import { Socket, Server } from "socket.io";
 import {
