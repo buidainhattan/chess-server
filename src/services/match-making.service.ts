@@ -59,3 +59,24 @@ export function joinRoom(socketId: string, code: string): JoinResult {
 
   return { success: true, hostId: room.hostId, match: match };
 }
+
+export function makeMove(
+  matchId: string,
+  playerId: string,
+  move: string,
+): string | null {
+  const match = activeMatches.get(matchId);
+
+  if (!match) {
+    return "match not found";
+  }
+
+  const playerColor = playerId === match.playerWhiteId ? "white" : "black";
+
+  if (playerColor !== match.turn) {
+    return "not your turn";
+  }
+
+  match.updateMatchState(move);
+  return null;
+}

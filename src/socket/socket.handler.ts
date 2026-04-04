@@ -5,6 +5,7 @@ import {
   joinMatchMaking,
   joinRoom,
   leaveMatchMaking,
+  makeMove,
 } from "../services/match-making.service.js";
 
 export function handleConnection(socket: Socket, io: Server) {
@@ -58,24 +59,19 @@ export function handleConnection(socket: Socket, io: Server) {
     io.to(matchId).emit("match_start", result.match);
   });
 
-  // socket.on("move", ({ matchId, move }: { matchId: string; move: any }) => {
-  //   const match = activeMatches.get(matchId);
+  socket.on(
+    "make_move",
+    ({ matchId, move }: { matchId: string; move: any }) => {
+      const result = makeMove(matchId, socket.id, move);
 
-  //   if (!match) {
-  //     socket.emit("error", { message: "match not found" });
-  //     return;
-  //   }
+      if (result) {
+        socket.emit("error", { message: result });
+        return;
+      }
 
-  //   const playerColor = match.playerWhiteId === socket.id ? "white" : "black";
-
-  //   if (playerColor !== match.turn) {
-  //     socket.emit("error", { message: "not your turn" });
-  //     return;
-  //   }
-
-  //   match.updateMatchState(move);
-  //   socket.to(matchId).emit("opponent_move", { move });
-  // });
+      socket.to(matchId).emit("opponent_move", { move });
+    },
+  );
 
   // socket.on("resign", ({ matchId }: { matchId: string }) => {
   //   const match = activeMatches.get(matchId);
