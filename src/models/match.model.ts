@@ -22,3 +22,8 @@ export class Match {
     this.moves.push(newMove);
   }
 }
+
+export interface MatchResult {
+  winner: string;
+  result: string;
+}

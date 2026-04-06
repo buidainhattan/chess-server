@@ -17,6 +17,9 @@ importers:
       socket.io:
         specifier: ^4.8.3
         version: 4.8.3
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.13
@@ -696,6 +699,9 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
+
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
 snapshots:
 
@@ -1377,3 +1383,5 @@ snapshots:
   wrappy@1.0.2: {}
 
   ws@8.18.3: {}
+
+  zod@4.3.6: {}

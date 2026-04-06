@@ -7,16 +7,19 @@ const db: BetterSqlite3.Database = new BetterSqlite3(
   resolve(__dirname, "../../data/chess.db"),
 );
 
-db.exec(`
+db.exec(
+  `
   CREATE TABLE IF NOT EXISTS matches (
     id TEXT PRIMARY KEY,
     player_white TEXT NOT NULL,
     player_black TEXT NOT NULL,
+    winner TEXT,
     result TEXT,
     moves TEXT,
-    created_at INTEGER DEFAULT (unixepoch()),
-    ended_at INTEGER
+    created_at TEXT DEFAULT (datetime('now')),
+    ended_at TEXT
   )
-`);
+`,
+);
 
 export default db;

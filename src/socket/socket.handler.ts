@@ -1,12 +1,14 @@
-import { MATCH_MAKING_STATUS } from "../constants/enums.js";
 import { Socket, Server } from "socket.io";
+
+import { MATCH_MAKING_STATUS } from "../constants/enums.js";
 import {
   createRoom,
   joinMatchMaking,
   joinRoom,
   leaveMatchMaking,
-  makeMove,
 } from "../services/match-making.service.js";
+import { makeMove, matchEnded } from "../services/match-in-progress.service.js";
+import type { MatchResult } from "../models/match.model.js";
 
 export function handleConnection(socket: Socket, io: Server) {
   socket.on("join_match_making", () => {
@@ -14,7 +16,6 @@ export function handleConnection(socket: Socket, io: Server) {
 
     if (match === null) {
       socket.emit("waiting", {
-        message: "waiting for opponent...",
         status: MATCH_MAKING_STATUS.SEARCHING,
       });
       return;
@@ -37,7 +38,7 @@ export function handleConnection(socket: Socket, io: Server) {
       return;
     }
 
-    socket.emit("end_waiting", { message: "stop waiting for opponent" });
+    socket.emit("end_waiting", { status: MATCH_MAKING_STATUS.CANCELLED });
   });
 
   socket.on("create_room", () => {
@@ -61,7 +62,7 @@ export function handleConnection(socket: Socket, io: Server) {
 
   socket.on(
     "make_move",
-    ({ matchId, move }: { matchId: string; move: any }) => {
+    ({ matchId, move }: { matchId: string; move: string }) => {
       const result = makeMove(matchId, socket.id, move);
 
       if (result) {
@@ -70,6 +71,27 @@ export function handleConnection(socket: Socket, io: Server) {
       }
 
       socket.to(matchId).emit("opponent_move", { move });
+    },
+  );
+
+  socket.on(
+    "match_ended",
+    ({
+      matchId,
+      winner,
+      result,
+    }: {
+      matchId: string;
+      winner: string;
+      result: string;
+    }) => {
+      const matchResult: MatchResult = { winner, result };
+      const endedResult = matchEnded(matchId, matchResult);
+
+      if (endedResult !== null) {
+        socket.emit("error", { message: endedResult });
+        return;
+      }
     },
   );
 
