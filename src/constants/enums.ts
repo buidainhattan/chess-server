@@ -3,6 +3,7 @@ import z from "zod";
 export enum SIDE {
   WHITE = "WHITE",
   BLACK = "BLACK",
+  NONE = "NONE",
 }
 
 export const SideSchema = z.enum(SIDE);

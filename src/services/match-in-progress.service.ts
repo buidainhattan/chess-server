@@ -1,6 +1,6 @@
-import { MatchResultSchema, SideSchema } from "../constants/enums.js";
+import { MatchResultSchema, SIDE, SideSchema } from "../constants/enums.js";
 import type { MatchResult } from "../models/match.model.js";
-import { updateMatchResult } from "../repositories/match.repository.js";
+import { insertMatch } from "../repositories/match.repository.js";
 import { getActiveMatch, removeActiveMatch } from "./match-manager.service.js";
 
 export function makeMove(
@@ -14,22 +14,22 @@ export function makeMove(
     return "match not found";
   }
 
-  const playerColor = playerId === match.playerWhiteId ? "white" : "black";
+  const playerColor =
+    playerId === match.playerWhiteId ? SIDE.WHITE : SIDE.BLACK;
 
   if (playerColor !== match.turn) {
     return "not your turn";
   }
 
-  match.updateMatchState(move);
+  match.updateStatus(move);
   return null;
 }
 
-export function matchEnded(
+export function endMatch(
   matchId: string,
   resultData: MatchResult,
 ): string | void {
   const match = getActiveMatch(matchId);
-
   if (!match) {
     return "match not found";
   }
@@ -38,12 +38,13 @@ export function matchEnded(
   if (!winner.success) {
     return "Invalid winner side";
   }
-
   const result = MatchResultSchema.safeParse(resultData.result);
   if (!result.success) {
     return "Invalid match result";
   }
+  match.end(winner.data, result.data);
 
-  updateMatchResult(winner.data, match, result.data);
+  insertMatch(match);
+
   removeActiveMatch(matchId);
 }

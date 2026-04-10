@@ -7,7 +7,7 @@ import {
   joinRoom,
   leaveMatchMaking,
 } from "../services/match-making.service.js";
-import { makeMove, matchEnded } from "../services/match-in-progress.service.js";
+import { makeMove, endMatch } from "../services/match-in-progress.service.js";
 import type { MatchResult } from "../models/match.model.js";
 
 export function handleConnection(socket: Socket, io: Server) {
@@ -86,7 +86,7 @@ export function handleConnection(socket: Socket, io: Server) {
       result: string;
     }) => {
       const matchResult: MatchResult = { winner, result };
-      const endedResult = matchEnded(matchId, matchResult);
+      const endedResult = endMatch(matchId, matchResult);
 
       if (endedResult !== null) {
         socket.emit("error", { message: endedResult });

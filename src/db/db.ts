@@ -16,8 +16,8 @@ db.exec(
     winner TEXT,
     result TEXT,
     moves TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
-    ended_at TEXT
+    started_at TEXT NOT NULL,
+    ended_at TEXT NOT NULL,
   )
 `,
 );

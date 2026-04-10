@@ -1,8 +1,13 @@
 import { randomUUID } from "crypto";
 import { Match, type Player } from "../models/match.model.js";
-import { insertMatch } from "../repositories/match.repository.js";
-import type { JoinResult, Room } from "../models/match-making.model.js";
-import { getPrivateRoom, removePrivateRoom, setActiveMatch, setPrivateRoom } from "./match-manager.service.js";
+import type { JoinResult } from "../models/match-making.model.js";
+import {
+  getPrivateRoom,
+  removePrivateRoom,
+  setActiveMatch,
+  setPrivateRoom,
+} from "./match-manager.service.js";
+import { MATCH_STATUS } from "../constants/enums.js";
 
 const waitingPlayer: Player = { playerId: null };
 
@@ -13,10 +18,14 @@ export function joinMatchMaking(socketId: string): Match | null {
   }
 
   const matchId = randomUUID();
-  const match = new Match(matchId, waitingPlayer.playerId, socketId);
+  const match = new Match(
+    matchId,
+    waitingPlayer.playerId,
+    socketId,
+    MATCH_STATUS.ONGOING,
+  );
 
   setActiveMatch(matchId, match);
-  insertMatch(match);
 
   waitingPlayer.playerId = null;
   return match; // match signals "game found"
@@ -55,10 +64,14 @@ export function joinRoom(socketId: string, code: string): JoinResult {
   removePrivateRoom(code);
 
   const matchId = randomUUID();
-  const match = new Match(matchId, room!.hostId, socketId);
+  const match = new Match(
+    matchId,
+    room!.hostId,
+    socketId,
+    MATCH_STATUS.ONGOING,
+  );
 
   setActiveMatch(matchId, match);
 
   return { success: true, hostId: room.hostId, match: match };
 }
-
