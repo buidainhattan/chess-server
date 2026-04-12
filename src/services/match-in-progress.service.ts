@@ -7,44 +7,70 @@ export function makeMove(
   matchId: string,
   playerId: string,
   move: string,
-): string | null {
-  const match = getActiveMatch(matchId);
+): string | void {
+  try {
+    const match = getActiveMatch(matchId);
 
-  if (!match) {
-    return "match not found";
+    const playerColor =
+      playerId === match.playerWhiteId ? SIDE.WHITE : SIDE.BLACK;
+
+    if (playerColor !== match.turn) {
+      return "not your turn";
+    }
+
+    match.updateStatus(move);
+  } catch (error) {
+    return error instanceof Error
+      ? error.message
+      : "unkown error from makeMove function";
   }
+}
 
-  const playerColor =
-    playerId === match.playerWhiteId ? SIDE.WHITE : SIDE.BLACK;
-
-  if (playerColor !== match.turn) {
-    return "not your turn";
+export function confirmEnd(matchId: string, socketId: string): string | void {
+  try {
+    const match = getActiveMatch(matchId);
+    match.confirmEnd(socketId);
+  } catch (error) {
+    return error instanceof Error
+      ? error.message
+      : "unkown error from confirmEnd function";
   }
+}
 
-  match.updateStatus(move);
-  return null;
+export function hasAllConfirmed(matchId: string): string | boolean {
+  try {
+    const match = getActiveMatch(matchId);
+    return match.isEndConfirmed();
+  } catch (error) {
+    return error instanceof Error
+      ? error.message
+      : "unkown error from hasAllConfirmed function";
+  }
 }
 
 export function endMatch(
   matchId: string,
   resultData: MatchResult,
 ): string | void {
-  const match = getActiveMatch(matchId);
-  if (!match) {
-    return "match not found";
-  }
+  try {
+    const match = getActiveMatch(matchId);
 
-  const winner = SideSchema.safeParse(resultData.winner);
-  if (!winner.success) {
-    return "Invalid winner side";
-  }
-  const result = MatchResultSchema.safeParse(resultData.result);
-  if (!result.success) {
-    return "Invalid match result";
-  }
-  match.end(winner.data, result.data);
+    const winner = SideSchema.safeParse(resultData.winner);
+    if (!winner.success) {
+      return "Invalid winner side";
+    }
+    const result = MatchResultSchema.safeParse(resultData.result);
+    if (!result.success) {
+      return "Invalid match result";
+    }
+    match.end(winner.data, result.data);
 
-  insertMatch(match);
+    insertMatch(match);
 
-  removeActiveMatch(matchId);
+    removeActiveMatch(matchId);
+  } catch (error) {
+    return error instanceof Error
+      ? error.message
+      : "unkown error from endMatch function";
+  }
 }

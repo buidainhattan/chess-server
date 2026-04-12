@@ -7,7 +7,12 @@ import {
   joinRoom,
   leaveMatchMaking,
 } from "../services/match-making.service.js";
-import { makeMove, endMatch } from "../services/match-in-progress.service.js";
+import {
+  makeMove,
+  endMatch,
+  confirmEnd,
+  hasAllConfirmed,
+} from "../services/match-in-progress.service.js";
 import type { MatchResult } from "../models/match.model.js";
 
 export function handleConnection(socket: Socket, io: Server) {
@@ -67,6 +72,7 @@ export function handleConnection(socket: Socket, io: Server) {
 
       if (result) {
         socket.emit("error", { message: result });
+        console.log(result);
         return;
       }
 
@@ -85,6 +91,20 @@ export function handleConnection(socket: Socket, io: Server) {
       winner: string;
       result: string;
     }) => {
+      confirmEnd(matchId, socket.id);
+      if (!hasAllConfirmed) {
+        return;
+      }
+      const confirm = confirmEnd(matchId, socket.id);
+      if (confirm) {
+        socket.emit("error", { message: confirm });
+        return;
+      }
+
+      if (!hasAllConfirmed) {
+        return;
+      }
+
       const matchResult: MatchResult = { winner, result };
       const endedResult = endMatch(matchId, matchResult);
 

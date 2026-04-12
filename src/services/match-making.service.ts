@@ -51,27 +51,33 @@ export function createRoom(socketId: string): string {
 }
 
 export function joinRoom(socketId: string, code: string): JoinResult {
-  const room = getPrivateRoom(code);
+  try {
+    const room = getPrivateRoom(code);
 
-  if (!room) {
-    return { success: false, message: "room not found" };
+    if (room.hostId === socketId) {
+      return { success: false, message: "can't join your own room" };
+    }
+
+    removePrivateRoom(code);
+
+    const matchId = randomUUID();
+    const match = new Match(
+      matchId,
+      room!.hostId,
+      socketId,
+      MATCH_STATUS.ONGOING,
+    );
+
+    setActiveMatch(matchId, match);
+
+    return { success: true, hostId: room.hostId, match: match };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "unkown error in joinRoom function",
+    };
   }
-
-  if (room.hostId === socketId) {
-    return { success: false, message: "can't join your own room" };
-  }
-
-  removePrivateRoom(code);
-
-  const matchId = randomUUID();
-  const match = new Match(
-    matchId,
-    room!.hostId,
-    socketId,
-    MATCH_STATUS.ONGOING,
-  );
-
-  setActiveMatch(matchId, match);
-
-  return { success: true, hostId: room.hostId, match: match };
 }

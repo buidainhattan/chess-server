@@ -17,7 +17,7 @@ db.exec(
     result TEXT,
     moves TEXT,
     started_at TEXT NOT NULL,
-    ended_at TEXT NOT NULL,
+    ended_at TEXT NOT NULL
   )
 `,
 );
