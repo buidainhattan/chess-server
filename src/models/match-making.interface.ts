@@ -1,4 +1,4 @@
-import type { Match } from "./match.model.js";
+import type { Match } from "../entities/Match.entity.js";
 
 export interface Room {
   hostId: string;

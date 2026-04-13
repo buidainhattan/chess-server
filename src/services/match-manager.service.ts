@@ -1,5 +1,5 @@
-import type { Room } from "../models/match-making.model.js";
-import type { Match } from "../models/match.model.js";
+import type { Match } from "../entities/Match.entity.js";
+import type { Room } from "../models/match-making.interface.js";
 
 const activeMatches = new Map<string, Match>();
 const privateRooms = new Map<string, Room>();

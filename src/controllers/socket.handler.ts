@@ -1,6 +1,6 @@
 import { Socket, Server } from "socket.io";
 
-import { MATCH_MAKING_STATUS } from "../constants/enums.js";
+import { MATCH_MAKING_STATUS } from "../models/enums.js";
 import {
   createRoom,
   joinMatchMaking,
@@ -13,7 +13,7 @@ import {
   confirmEnd,
   hasAllConfirmed,
 } from "../services/match-in-progress.service.js";
-import type { MatchResult } from "../models/match.model.js";
+import type { MatchResult } from "../models/match.interface.js";
 
 export function handleConnection(socket: Socket, io: Server) {
   socket.on("join_match_making", () => {
@@ -72,7 +72,6 @@ export function handleConnection(socket: Socket, io: Server) {
 
       if (result) {
         socket.emit("error", { message: result });
-        console.log(result);
         return;
       }
 
@@ -91,24 +90,20 @@ export function handleConnection(socket: Socket, io: Server) {
       winner: string;
       result: string;
     }) => {
-      confirmEnd(matchId, socket.id);
-      if (!hasAllConfirmed) {
-        return;
-      }
       const confirm = confirmEnd(matchId, socket.id);
+
       if (confirm) {
         socket.emit("error", { message: confirm });
         return;
       }
 
-      if (!hasAllConfirmed) {
+      if (!hasAllConfirmed(matchId)) {
         return;
       }
 
       const matchResult: MatchResult = { winner, result };
       const endedResult = endMatch(matchId, matchResult);
-
-      if (endedResult !== null) {
+      if (endedResult) {
         socket.emit("error", { message: endedResult });
         return;
       }

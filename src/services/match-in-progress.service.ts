@@ -1,5 +1,5 @@
-import { MatchResultSchema, SIDE, SideSchema } from "../constants/enums.js";
-import type { MatchResult } from "../models/match.model.js";
+import { MatchResultSchema, SIDE, SideSchema } from "../models/enums.js";
+import type { MatchResult } from "../models/match.interface.js";
 import { insertMatch } from "../repositories/match.repository.js";
 import { getActiveMatch, removeActiveMatch } from "./match-manager.service.js";
 

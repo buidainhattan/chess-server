@@ -1,8 +1,4 @@
-import { MATCH_STATUS, SIDE, type MATCH_RESULT } from "../constants/enums.js";
-
-export interface Player {
-  playerId: string | null;
-}
+import { type MATCH_RESULT, MATCH_STATUS, SIDE } from "../models/enums.js";
 
 export class Match {
   public id: string;
@@ -61,9 +57,4 @@ export class Match {
     this.result = result;
     this.endedAt = new Date().toISOString().replace("T", " ").slice(0, 19);
   }
-}
-
-export interface MatchResult {
-  winner: string;
-  result: string;
 }

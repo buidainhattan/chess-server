@@ -1,13 +1,14 @@
 import { randomUUID } from "crypto";
-import { Match, type Player } from "../models/match.model.js";
-import type { JoinResult } from "../models/match-making.model.js";
+import { type Player } from "../models/match.interface.js";
+import type { JoinResult } from "../models/match-making.interface.js";
 import {
   getPrivateRoom,
   removePrivateRoom,
   setActiveMatch,
   setPrivateRoom,
 } from "./match-manager.service.js";
-import { MATCH_STATUS } from "../constants/enums.js";
+import { MATCH_STATUS } from "../models/enums.js";
+import { Match } from "../entities/Match.entity.js";
 
 const waitingPlayer: Player = { playerId: null };
 
