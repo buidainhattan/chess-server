@@ -1,4 +1,4 @@
-import type { Match } from "../models/match.interface.js";
+import type { Match } from "../entities/Match.entity.js";
 import db from "./db.js";
 
 export function insertMatch(match: Match): void {
