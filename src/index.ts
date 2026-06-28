@@ -2,8 +2,8 @@ import express, { type Request, type Response } from "express";
 import { createServer } from "http";
 import { Server, Socket } from "socket.io";
 
-import { handleConnection } from "./controllers/socket.handler.js";
-import statRouter from "./controllers/stats.controller.js";
+import { handleConnection } from "./interface/match.handler.js";
+import statRouter from "./domain/stats/stats.controller.js";
 
 const app = express();
 const httpServer = createServer(app);

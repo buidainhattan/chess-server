@@ -1,19 +1,19 @@
 import { Socket, Server } from "socket.io";
 
-import { MATCH_MAKING_STATUS } from "../models/enums.js";
+import { MATCH_MAKING_STATUS } from "../domain/match-making/match-making.enum.js";
 import {
   createRoom,
   joinMatchMaking,
   joinRoom,
   leaveMatchMaking,
-} from "../services/match-making.service.js";
+} from "../application/match-making.use-case.js";
 import {
   makeMove,
   endMatch,
   confirmEnd,
   hasAllConfirmed,
-} from "../services/match-in-progress.service.js";
-import type { MatchResult } from "../models/match.interface.js";
+} from "../application/match.use-case.js";
+import type { MatchResult } from "../domain/match/match.interface.js";
 
 export function handleConnection(socket: Socket, io: Server) {
   socket.on("join_match_making", () => {

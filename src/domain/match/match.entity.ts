@@ -1,4 +1,4 @@
-import { type MATCH_RESULT, MATCH_STATUS, SIDE } from "../models/enums.js";
+import { type MATCH_RESULT, MATCH_STATUS, SIDE } from "./match.enum.js";
 
 export class Match {
   public id: string;

@@ -1,7 +1,11 @@
-import { MatchResultSchema, SIDE, SideSchema } from "../models/enums.js";
-import type { MatchResult } from "../models/match.interface.js";
-import { insertMatch } from "../repositories/match.repository.js";
-import { getActiveMatch, removeActiveMatch } from "./match-manager.service.js";
+import {
+  MatchResultSchema,
+  SIDE,
+  SideSchema,
+} from "../domain/match/match.enum.js";
+import type { MatchResult } from "../domain/match/match.interface.js";
+import { insertMatch } from "../infrastructure/match.repository.js";
+import { getActiveMatch, removeActiveMatch } from "../infrastructure/match-manager.service.js";
 
 export function makeMove(
   matchId: string,
