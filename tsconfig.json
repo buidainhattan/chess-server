@@ -9,7 +9,12 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "target": "esnext",
-    "types": [],
+    "lib": [
+      "esnext"
+    ],
+    "types": [
+      "node"
+    ],
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
@@ -30,19 +35,16 @@
     // "noPropertyAccessFromIndexSignature": true,
     // Recommended Options
     "strict": true,
-    "esModuleInterop": true,
     "jsx": "react-jsx",
     "verbatimModuleSyntax": true,
+    "esModuleInterop": true,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
-    "skipLibCheck": true,
+    "skipLibCheck": true
   },
+  // Only what src folder
   "include": [
     "src/**/*"
-  ], // Tell TS to only look in src
-  "exclude": [
-    "node_modules",
-    "dist"
   ]
 }

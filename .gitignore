@@ -1,25 +1,33 @@
-# Dependencies
+# Dependency directories
 node_modules/
+.pnpm-debug.log*
 
-# Database
-*.db
-*.db-shm
-*.db-wal
+# TypeScript build output
+dist/
+build/
+*.tsbuildinfo
 
-# Environment variables
-.env
-.env.local
+# IDEs and editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
 
 # Logs
-logs/
+logs
 *.log
 npm-debug.log*
-pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# OS files
+# OS metadata
 .DS_Store
 Thumbs.db
 
-# Editor
-.vscode/
-.idea/
+# Environment variables / Secrets (NEVER commit these)
+.env
+.env.local
+.env.*.local

@@ -1,39 +1,53 @@
-import express, { type Request, type Response } from "express";
+import express from "express";
 import { createServer } from "http";
-import { Server, Socket } from "socket.io";
+import { Server } from "socket.io";
+import { EventEmitter } from "events";
 
-import { handleConnection } from "./interface/match.handler.js";
-import statRouter from "./domain/stats/stats.controller.js";
+import { InMemoryMatchmakingRepo } from "./infrastructure/in-memory-matchmaking.repo.js";
+import { MatchmakingService } from "./application/matchmaking.service.js";
+import { registerMatchmakingHandler } from "./interface/matchmaking.handler.js";
 
 const app = express();
 const httpServer = createServer(app);
+const io = new Server(httpServer);
+const eventEmitter = new EventEmitter();
 
-const io: Server = new Server(httpServer, {
-  cors: {
-    origin: "*",
-  },
+// --- Composition root: wire dependencies ---
+const matchmakingRepo = new InMemoryMatchmakingRepo();
+const matchmakingService = new MatchmakingService(
+  matchmakingRepo,
+  eventEmitter,
+);
+
+// --- Socket.io auth middleware ---
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) {
+    return next(new Error("Unauthorized"));
+  }
+
+  try {
+    // replace with real JWT verification
+    const playerId = verifyToken(token);
+    socket.data.playerId = playerId;
+    next();
+  } catch {
+    next(new Error("Unauthorized"));
+  }
 });
 
-app.use(express.json());
-
-app.use("/stat", statRouter);
-
-app.get("/", (req: Request, res: Response) => {
-  res.json({ status: "chess server is running" });
+// --- Register handlers per connection ---
+io.on("connection", (socket) => {
+  registerMatchmakingHandler(io, socket, matchmakingService, eventEmitter);
 });
 
-io.on("connection", (socket: Socket) => {
-  console.log(`socket connected: ${socket.id}`);
-
-  handleConnection(socket, io);
-
-  socket.on("disconnect", () => {
-    console.log(`socket disconnected: ${socket.id}`);
-  });
-});
-
-const PORT = process.env.PORT || 3000;
-
+// --- Start server ---
+const PORT = process.env.PORT ?? 3000;
 httpServer.listen(PORT, () => {
-  console.log(`server listening on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
+
+function verifyToken(token: string): string {
+  // stub — swap in jsonwebtoken or your auth lib here
+  return token;
+}
