@@ -30,7 +30,7 @@ describe("MatchmakingService", () => {
       await service.joinQueue("player-1");
       const result = await service.joinQueue("player-1");
 
-      expect(result.alreadyQueued).toBe(true);
+      expect(result.queueing).toBe(true);
     });
 
     it("should not save a second request if player is already queued", async () => {

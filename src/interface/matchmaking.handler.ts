@@ -12,8 +12,8 @@ export function registerMatchmakingHandler(
   socket.on("matchmaking:join", async () => {
     const playerId = socket.data.playerId as string;
 
-    const { alreadyQueued } = await matchmakingService.joinQueue(playerId);
-    if (alreadyQueued) {
+    const { queueing: queueing } = await matchmakingService.joinQueue(playerId);
+    if (queueing) {
       socket.emit("matchmaking:error", { message: "Already in queue" });
       return;
     }
