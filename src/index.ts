@@ -9,6 +9,7 @@ import { registerMatchmakingHandler } from "./interface/matchmaking.handler.js";
 import { RedisActiveMatchRepo } from "./infrastructure/redis-active-match.repo.js";
 import { createClient } from "redis";
 import { ActiveMatchService } from "./application/active-match.service.js";
+import { registerActiveMatchHandler } from "./interface/active-match.handler.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -24,7 +25,10 @@ const matchmakingService = new MatchmakingService(
 );
 
 const activeMatchRepo = new RedisActiveMatchRepo(redisClient);
-const activeMatchService = new ActiveMatchService(activeMatchRepo);
+const activeMatchService = new ActiveMatchService(
+  activeMatchRepo,
+  eventEmitter,
+);
 
 // --- Socket.io auth middleware ---
 io.use((socket, next) => {
@@ -46,6 +50,7 @@ io.use((socket, next) => {
 // --- Register handlers per connection ---
 io.on("connection", (socket) => {
   registerMatchmakingHandler(io, socket, matchmakingService, eventEmitter);
+  registerActiveMatchHandler(io, socket, activeMatchService);
 });
 
 // --- Start server ---

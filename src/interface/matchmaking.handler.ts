@@ -1,7 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { EventEmitter } from "events";
 import { MatchmakingService } from "../application/matchmaking.service.js";
-import { MatchFound } from "../domain/matchmaking/match-found.event.js";
+import { MatchFound } from "../domain/shared/match-found.event.js";
 
 export function registerMatchmakingHandler(
   io: Server,
@@ -41,10 +41,15 @@ export function registerMatchmakingHandler(
 }
 
 function onMatchFoundEvent(io: Server, matchFoundEvent: MatchFound): void {
+  const matchId = `match:${matchFoundEvent.id}`;
   const playerIds = [matchFoundEvent.playerOneId, matchFoundEvent.playerTwoId];
   const matchFoundPayload = JSON.stringify(matchFoundEvent);
 
   for (const playerId of playerIds) {
-    io.to(playerId).emit("matchmaking:match-found", matchFoundPayload);
+    const playerSocket = io.sockets.sockets.get(playerId);
+    if (!playerSocket) return;
+
+    playerSocket.join(matchId);
+    playerSocket.emit("matchmaking:match-found", matchFoundPayload);
   }
 }

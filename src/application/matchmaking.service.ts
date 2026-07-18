@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 import { EventEmitter } from "events";
 import { type IMatchmakingRepo } from "../domain/matchmaking/imatchmaking.repo.js";
 import { MatchRequest } from "../domain/matchmaking/match-request.entity.js";
-import { MatchFound } from "../domain/matchmaking/match-found.event.js";
+import { MatchFound } from "../domain/shared/match-found.event.js";
 
 export class MatchmakingService {
   constructor(
@@ -45,6 +45,7 @@ export class MatchmakingService {
         matchRequest.playerId,
         playerId,
       );
+      this.eventEmitter.emit(MatchFound.NAME, matchFoundEvent);
     }
 
     return matchFoundEvent;

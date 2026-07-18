@@ -3,7 +3,7 @@ import { describe, it, expect, jest } from "@jest/globals";
 import { EventEmitter } from "events";
 import { MatchmakingService } from "../application/matchmaking.service.js";
 import { InMemoryMatchmakingRepo } from "../infrastructure/in-memory-matchmaking.repo.js";
-import { MatchFound } from "../domain/matchmaking/match-found.event.js";
+import { MatchFound } from "../domain/shared/match-found.event.js";
 
 function makeService() {
   const repo = new InMemoryMatchmakingRepo();

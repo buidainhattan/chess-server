@@ -1,10 +1,19 @@
-import type { MatchFound } from "../matchmaking/match-found.event.js";
+import type { MatchFound } from "../shared/match-found.event.js";
 import type { Side } from "../shared/side.type.js";
 
 export class ActiveMatch {
-  constructor(readonly matchFound: MatchFound) {}
+  readonly id: string;
+  readonly playerOneId: string;
+  readonly playerTwoId: string;
   sideToMove: Side = "white";
   moveHistory: string[] = [];
+  readonly startAt: Date = new Date();
+  
+  constructor(readonly matchFound: MatchFound) {
+    this.id = matchFound.id;
+    this.playerOneId = matchFound.playerOneId;
+    this.playerTwoId = matchFound.playerTwoId;
+  }
 
   validate(sideToMove: Side, move: string): boolean {
     if (sideToMove !== this.sideToMove) {

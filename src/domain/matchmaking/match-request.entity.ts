@@ -1,6 +1,6 @@
 export class MatchRequest {
   constructor(
-    readonly matchRequestId: string,
+    readonly id: string,
     readonly playerId: string,
     readonly createdAt: Date = new Date(),
   ) {}

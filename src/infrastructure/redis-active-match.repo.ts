@@ -8,7 +8,7 @@ export class RedisActiveMatchRepo implements IActiveMatchRepo {
   constructor(private readonly redisClient: RedisClientType) {}
 
   async saveActiveMatch(activeMatch: ActiveMatch): Promise<void> {
-    const key = `${this.prefix}${activeMatch.matchFound.matchmakingId}`;
+    const key = `${this.prefix}${activeMatch.matchFound.id}`;
     const data = JSON.stringify({
       matchFound: activeMatch.matchFound,
       sideToMove: activeMatch.sideToMove,
