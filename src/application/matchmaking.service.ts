@@ -11,45 +11,42 @@ export class MatchmakingService {
     private readonly eventEmitter: EventEmitter,
   ) {}
 
-  async joinQueue(playerId: string): Promise<{ queueing: boolean }> {
-    const existing =
+  async joinQueue(playerId: string): Promise<{ alreadyQueued: boolean }> {
+    const existingQueue =
       await this.matchmakingRepo.findMatchRequestByPlayerId(playerId);
-    if (existing) {
-      return { queueing: true };
+    if (existingQueue) {
+      return { alreadyQueued: true };
     }
 
     const matchRequest = new MatchRequest(randomUUID(), playerId);
     await this.matchmakingRepo.saveMatchRequest(matchRequest);
 
-    const { matchFound: matchFound } = await this.matchmaking(playerId);
-
-    if (matchFound) {
-      return { queueing: false };
-    }
-
-    return { queueing: true };
+    return { alreadyQueued: false };
   }
 
   async leaveQueue(playerId: string): Promise<void> {
     await this.matchmakingRepo.deleteMatchRequest(playerId);
   }
 
-  private async matchmaking(
-    playerId: string,
-  ): Promise<{ matchFound: boolean }> {
-    const opponent =
-      await this.matchmakingRepo.findWaitingMatchRequest(playerId);
+  async matchmaking(playerId: string): Promise<MatchFound | null> {
+    const matchRequests = await this.matchmakingRepo.findWaitingMatchRequests();
 
-    if (opponent) {
+    if (matchRequests.length <= 1) return null;
+
+    let matchFoundEvent = null;
+    for (const matchRequest of matchRequests) {
+      if (matchRequest.isOwnedBy(playerId)) continue;
+
+      await this.matchmakingRepo.deleteMatchRequest(matchRequest.playerId);
       await this.matchmakingRepo.deleteMatchRequest(playerId);
-      await this.matchmakingRepo.deleteMatchRequest(opponent.playerId);
 
-      const event = new MatchFound(randomUUID(), opponent.playerId, playerId);
-      this.eventEmitter.emit(MatchFound.NAME, event);
-
-      return { matchFound: true };
+      matchFoundEvent = new MatchFound(
+        randomUUID(),
+        matchRequest.playerId,
+        playerId,
+      );
     }
 
-    return { matchFound: false };
+    return matchFoundEvent;
   }
 }

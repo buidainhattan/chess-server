@@ -6,10 +6,14 @@ import { EventEmitter } from "events";
 import { InMemoryMatchmakingRepo } from "./infrastructure/in-memory-matchmaking.repo.js";
 import { MatchmakingService } from "./application/matchmaking.service.js";
 import { registerMatchmakingHandler } from "./interface/matchmaking.handler.js";
+import { RedisActiveMatchRepo } from "./infrastructure/redis-active-match.repo.js";
+import { createClient } from "redis";
+import { ActiveMatchService } from "./application/active-match.service.js";
 
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer);
+const redisClient = createClient();
 const eventEmitter = new EventEmitter();
 
 // --- Composition root: wire dependencies ---
@@ -18,6 +22,9 @@ const matchmakingService = new MatchmakingService(
   matchmakingRepo,
   eventEmitter,
 );
+
+const activeMatchRepo = new RedisActiveMatchRepo(redisClient);
+const activeMatchService = new ActiveMatchService(activeMatchRepo);
 
 // --- Socket.io auth middleware ---
 io.use((socket, next) => {

@@ -18,14 +18,7 @@ export class InMemoryMatchmakingRepo implements IMatchmakingRepo {
     return this.store.get(playerId) ?? null;
   }
 
-  async findWaitingMatchRequest(
-    excludePlayerId: string,
-  ): Promise<MatchRequest | null> {
-    for (const [playerId, matchRequest] of this.store) {
-      if (playerId !== excludePlayerId) {
-        return matchRequest;
-      }
-    }
-    return null;
+  async findWaitingMatchRequests(): Promise<MatchRequest[]> {
+    return Array.from(this.store.values());
   }
 }

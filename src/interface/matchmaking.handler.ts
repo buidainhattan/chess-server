@@ -12,13 +12,20 @@ export function registerMatchmakingHandler(
   socket.on("matchmaking:join", async () => {
     const playerId = socket.data.playerId as string;
 
-    const { queueing: queueing } = await matchmakingService.joinQueue(playerId);
-    if (queueing) {
-      socket.emit("matchmaking:error", { message: "Already in queue" });
+    const { alreadyQueued: alreadyQueued } =
+      await matchmakingService.joinQueue(playerId);
+    if (alreadyQueued) {
+      socket.emit("matchmaking:rejected", { message: "Already in queue" });
       return;
     }
 
     socket.emit("matchmaking:joined");
+
+    const matchFoundEvent = await matchmakingService.matchmaking(playerId);
+
+    if (matchFoundEvent) {
+      onMatchFoundEvent(io, matchFoundEvent);
+    }
   });
 
   socket.on("matchmaking:leave", async () => {
@@ -27,26 +34,17 @@ export function registerMatchmakingHandler(
     socket.emit("matchmaking:left");
   });
 
-  const onMatchFound = (event: MatchFound) => {
-    if (
-      event.playerOneId !== socket.data.playerId &&
-      event.playerTwoId !== socket.data.playerId
-    ) {
-      return;
-    }
-
-    socket.emit("matchmaking:match-found", {
-      matchmakingId: event.matchmakingId,
-      playerOneId: event.playerOneId,
-      playerTwoId: event.playerTwoId,
-      foundAt: event.foundAt,
-    });
-  };
-  eventEmitter.on(MatchFound.NAME, onMatchFound);
-
   socket.on("disconnect", async () => {
     const playerId = socket.data.playerId as string;
     await matchmakingService.leaveQueue(playerId);
-    eventEmitter.off(MatchFound.NAME, onMatchFound);
   });
+}
+
+function onMatchFoundEvent(io: Server, matchFoundEvent: MatchFound): void {
+  const playerIds = [matchFoundEvent.playerOneId, matchFoundEvent.playerTwoId];
+  const matchFoundPayload = JSON.stringify(matchFoundEvent);
+
+  for (const playerId of playerIds) {
+    io.to(playerId).emit("matchmaking:match-found", matchFoundPayload);
+  }
 }
