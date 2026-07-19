@@ -8,8 +8,8 @@ export class ActiveMatch {
   sideToMove: Side = "white";
   moveHistory: string[] = [];
   readonly startAt: Date = new Date();
-  
-  constructor(readonly matchFound: MatchFound) {
+
+  constructor(matchFound: MatchFound) {
     this.id = matchFound.id;
     this.playerOneId = matchFound.playerOneId;
     this.playerTwoId = matchFound.playerTwoId;

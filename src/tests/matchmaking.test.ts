@@ -43,6 +43,29 @@ describe("MatchmakingService", () => {
       expect(request).not.toBeNull(); // still one entry, not duplicated
     });
 
+    it("should not emit MatchFound when no player is queuing", async () => {
+      const { eventEmitter, service } = makeService();
+
+      const matchFoundHandler = jest.fn<(event: MatchFound) => void>();
+      eventEmitter.on(MatchFound.NAME, matchFoundHandler);
+
+      await service.matchmaking("player-1");
+
+      expect(matchFoundHandler).toHaveBeenCalledTimes(0);
+    });
+
+    it("should not emit MatchFound when only one player is queuing", async () => {
+      const { eventEmitter, service } = makeService();
+
+      const matchFoundHandler = jest.fn<(event: MatchFound) => void>();
+      eventEmitter.on(MatchFound.NAME, matchFoundHandler);
+
+      await service.joinQueue("player-1");
+      await service.matchmaking("player-1");
+
+      expect(matchFoundHandler).toHaveBeenCalledTimes(0);
+    });
+
     it("should emit MatchFound when two players join", async () => {
       const { eventEmitter, service } = makeService();
 
@@ -50,7 +73,9 @@ describe("MatchmakingService", () => {
       eventEmitter.on(MatchFound.NAME, matchFoundHandler);
 
       await service.joinQueue("player-1");
+      await service.matchmaking("player-1");
       await service.joinQueue("player-2");
+      await service.matchmaking("player-2");
 
       expect(matchFoundHandler).toHaveBeenCalledTimes(1);
       const event: MatchFound = matchFoundHandler.mock.calls[0]?.[0]!;
@@ -62,7 +87,9 @@ describe("MatchmakingService", () => {
       const { repo, service } = makeService();
 
       await service.joinQueue("player-1");
+      await service.matchmaking("player-1");
       await service.joinQueue("player-2");
+      await service.matchmaking("player-2");
 
       const p1 = await repo.findMatchRequestByPlayerId("player-1");
       const p2 = await repo.findMatchRequestByPlayerId("player-2");

@@ -34,11 +34,15 @@ export class ActiveMatchService {
 
     const state = match.validate(sideToMove, move);
 
+    if (state) {
+    }
+
     return { completed: state };
   }
 
   private async initializeMatch(matchFoundEvent: MatchFound): Promise<void> {
     const activeMatch = new ActiveMatch(matchFoundEvent);
+
     await this.activeMatchRepo.saveActiveMatch(activeMatch);
   }
 }

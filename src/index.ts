@@ -10,6 +10,7 @@ import { RedisActiveMatchRepo } from "./infrastructure/redis-active-match.repo.j
 import { createClient } from "redis";
 import { ActiveMatchService } from "./application/active-match.service.js";
 import { registerActiveMatchHandler } from "./interface/active-match.handler.js";
+import { InMemoryActiveMatchRepo } from "./infrastructure/in-memory-active-match.repo.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -24,7 +25,8 @@ const matchmakingService = new MatchmakingService(
   eventEmitter,
 );
 
-const activeMatchRepo = new RedisActiveMatchRepo(redisClient);
+const redisRepo = new RedisActiveMatchRepo(redisClient);
+const activeMatchRepo = new InMemoryActiveMatchRepo(redisRepo);
 const activeMatchService = new ActiveMatchService(
   activeMatchRepo,
   eventEmitter,
