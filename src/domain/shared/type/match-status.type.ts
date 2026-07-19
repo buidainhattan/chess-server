@@ -4,4 +4,5 @@ export type MatchStatus =
   | "stalemate"
   | "three-fold-repetitions"
   | "insufficient-material"
-  | "resign";
+  | "resign"
+  | "timeout";

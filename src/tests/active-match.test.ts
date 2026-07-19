@@ -159,15 +159,14 @@ describe("ActiveMatchService", () => {
           "Qh7",
           "Qxc8",
           "Kg6",
-          "Qe6",
         ];
-        match.sideToMove = "black";
+        match.sideToMove = "white";
 
         jest
           .spyOn(mockRedisRepo, "findActiveMatchById")
           .mockResolvedValue(match);
 
-        const result = await service.makeMove("match-1", "player-2", "c5");
+        const result = await service.makeMove("match-1", "player-1", "Qe6");
 
         expect(result.completed).toBe(true);
         expect(match.status).toBe("stalemate");
@@ -253,6 +252,99 @@ describe("ActiveMatchService", () => {
       expect(result.completed).toBe(false);
       expect(match.status).toBe("ongoing");
       expect(mockRedisRepo.deleteActiveMatch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Clock and timeouts", () => {
+    describe("makeMove with dynamic clock deduction", () => {
+      it("should deduct time cleanly from white pool upon a successful move", async () => {
+        const { mockRedisRepo, service } = makeService();
+        const hydratedEvent = new MatchFound("match-1", "player-1", "player-2");
+
+        const { ActiveMatch } =
+          await import("../domain/active-match/active-match.entity.js");
+        const match = new ActiveMatch(hydratedEvent);
+        match.whiteTimeLeftMs = 60000;
+        // Set clock anchor back 10 seconds ago
+        match.lastMoveAt = new Date(Date.now() - 10000);
+
+        jest
+          .spyOn(mockRedisRepo, "findActiveMatchById")
+          .mockResolvedValue(match);
+
+        const result = await service.makeMove("match-1", "player-1", "e4");
+
+        expect(result.completed).toBe(true);
+        expect(match.whiteTimeLeftMs).toBeLessThanOrEqual(50000);
+        expect(match.status).toBe("ongoing");
+      });
+
+      it("should trigger immediate timeout termination if white player takes too long on turn submission", async () => {
+        const { mockRedisRepo, service } = makeService();
+        const hydratedEvent = new MatchFound("match-1", "player-1", "player-2");
+
+        const { ActiveMatch } =
+          await import("../domain/active-match/active-match.entity.js");
+        const match = new ActiveMatch(hydratedEvent);
+        match.whiteTimeLeftMs = 5000; // 5 seconds left
+        match.lastMoveAt = new Date(Date.now() - 6000); // 6 seconds elapsed
+
+        jest
+          .spyOn(mockRedisRepo, "findActiveMatchById")
+          .mockResolvedValue(match);
+
+        const result = await service.makeMove("match-1", "player-1", "e4");
+
+        expect(result.completed).toBe(false);
+        expect(match.status).toBe("timeout");
+        expect(match.winner).toBe("black");
+        expect(mockRedisRepo.deleteActiveMatch).toHaveBeenCalledWith("match-1");
+      });
+    });
+
+    describe("checkTimeout (Passive Path Worker)", () => {
+      it("should cleanly transition state and terminate game if checked after a timeout occurred", async () => {
+        const { mockRedisRepo, service } = makeService();
+        const hydratedEvent = new MatchFound("match-1", "player-1", "player-2");
+
+        const { ActiveMatch } =
+          await import("../domain/active-match/active-match.entity.js");
+        const match = new ActiveMatch(hydratedEvent);
+        match.whiteTimeLeftMs = 10000;
+        match.lastMoveAt = new Date(Date.now() - 15000); // Exceeded 10s pool
+
+        jest
+          .spyOn(mockRedisRepo, "findActiveMatchById")
+          .mockResolvedValue(match);
+
+        const result = await service.checkTimeout("match-1");
+
+        expect(result.completed).toBe(true);
+        expect(match.status).toBe("timeout");
+        expect(match.winner).toBe("black");
+        expect(mockRedisRepo.deleteActiveMatch).toHaveBeenCalledWith("match-1");
+      });
+
+      it("should deduct time but leave game active if checkTimeout runs before a player runs out of time", async () => {
+        const { mockRedisRepo, service } = makeService();
+        const hydratedEvent = new MatchFound("match-1", "player-1", "player-2");
+
+        const { ActiveMatch } =
+          await import("../domain/active-match/active-match.entity.js");
+        const match = new ActiveMatch(hydratedEvent);
+        match.whiteTimeLeftMs = 60000;
+        match.lastMoveAt = new Date(Date.now() - 5000); // only 5s elapsed
+
+        jest
+          .spyOn(mockRedisRepo, "findActiveMatchById")
+          .mockResolvedValue(match);
+
+        const result = await service.checkTimeout("match-1");
+
+        expect(result.completed).toBe(false);
+        expect(match.status).toBe("ongoing");
+        expect(mockRedisRepo.updateActiveMatchState).toHaveBeenCalled();
+      });
     });
   });
 });

@@ -13,13 +13,18 @@ export class ActiveMatch {
   winner: Side | null = null;
   startAt: Date = new Date();
 
-  // Internal non-serializable engine state
+  // Clock metrics (Time Control: defaults to 5 minutes / 300000 ms per player)
+  whiteTimeLeftMs: number = 300000;
+  blackTimeLeftMs: number = 300000;
+  lastMoveAt: Date = new Date();
+
   private _chess: Chess | null = null;
 
   constructor(matchFound: MatchFound) {
     this.id = matchFound.id;
     this.playerOneId = matchFound.playerOneId;
     this.playerTwoId = matchFound.playerTwoId;
+    this.lastMoveAt = this.startAt;
   }
 
   validate(playerId: string, move: string): boolean {
@@ -31,12 +36,25 @@ export class ActiveMatch {
       return false;
     }
 
+    // Run the private time validation check first
+    if (!this.checkTime()) {
+      return false;
+    }
+
     if (!this.validateMove(move)) {
       return false;
     }
 
     this.applyMove(move);
     return true;
+  }
+
+  // Explicit timeout check method exposed for passive system/client ticks
+  forceTimeoutCheck(): boolean {
+    if (this.status !== "ongoing") {
+      return false;
+    }
+    return !this.checkTime();
   }
 
   resign(playerId: string): boolean {
@@ -58,6 +76,31 @@ export class ActiveMatch {
     return true;
   }
 
+  private checkTime(): boolean {
+    const now = new Date();
+    const elapsedMs = now.getTime() - this.lastMoveAt.getTime();
+
+    if (this.sideToMove === "white") {
+      this.whiteTimeLeftMs -= elapsedMs;
+      if (this.whiteTimeLeftMs <= 0) {
+        this.whiteTimeLeftMs = 0;
+        this.status = "timeout";
+        this.winner = "black";
+        return false;
+      }
+    } else {
+      this.blackTimeLeftMs -= elapsedMs;
+      if (this.blackTimeLeftMs <= 0) {
+        this.blackTimeLeftMs = 0;
+        this.status = "timeout";
+        this.winner = "white";
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   private validateIdentity(playerId: string): boolean {
     const expectedPlayerId =
       this.sideToMove === "white" ? this.playerOneId : this.playerTwoId;
@@ -67,12 +110,9 @@ export class ActiveMatch {
   private validateMove(move: string): boolean {
     try {
       const chess = this.getOrHydrateChessEngine();
-
-      // Test the move validation non-destructively
       const validMove = chess.move(move);
       if (!validMove) return false;
 
-      // Undo immediately so applyMove handles the absolute state change
       chess.undo();
       return true;
     } catch {
@@ -82,15 +122,12 @@ export class ActiveMatch {
 
   private applyMove(move: string): void {
     const chess = this.getOrHydrateChessEngine();
-
-    // Commit to the long-lived chess instance
     chess.move(move);
-
-    // Commit to serializable tracking fields
     this.moveHistory.push(move);
 
-    // Determine terminal state before changing sideToMove
     this.matchEnd(chess);
+
+    this.lastMoveAt = new Date();
 
     if (this.status === "ongoing") {
       this.sideToMove = this.sideToMove === "white" ? "black" : "white";
@@ -109,22 +146,10 @@ export class ActiveMatch {
   }
 
   private checkMatchStatus(chess: Chess): MatchStatus {
-    if (chess.isCheckmate()) {
-      return "checkmate";
-    }
-
-    if (chess.isStalemate()) {
-      return "stalemate";
-    }
-
-    if (chess.isThreefoldRepetition()) {
-      return "three-fold-repetitions";
-    }
-
-    if (chess.isInsufficientMaterial()) {
-      return "insufficient-material";
-    }
-
+    if (chess.isCheckmate()) return "checkmate";
+    if (chess.isStalemate()) return "stalemate";
+    if (chess.isThreefoldRepetition()) return "three-fold-repetitions";
+    if (chess.isInsufficientMaterial()) return "insufficient-material";
     return "ongoing";
   }
 
@@ -133,7 +158,6 @@ export class ActiveMatch {
       this._chess = new Chess();
     }
 
-    // If engine history is 0, it's either a brand new game or a freshly hydrated entity from Redis
     if (this._chess.history().length === 0) {
       for (const historicalMove of this.moveHistory) {
         this._chess.move(historicalMove);

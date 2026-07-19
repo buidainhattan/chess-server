@@ -33,10 +33,13 @@ export class ActiveMatchService {
 
     const isValid = match.validate(playerId, move);
     if (!isValid) {
+      // Even if the move validation fails, check if it failed due to a terminal timeout
+      if (match.status === "timeout") {
+        await this.activeMatchRepo.deleteActiveMatch(matchId);
+      }
       return { completed: false };
     }
 
-    // Check if the move pushed the game into a terminal state
     if (match.status !== "ongoing") {
       await this.activeMatchRepo.deleteActiveMatch(matchId);
     } else {
@@ -44,6 +47,23 @@ export class ActiveMatchService {
     }
 
     return { completed: true };
+  }
+
+  async checkTimeout(matchId: string): Promise<{ completed: boolean }> {
+    const match = await this.activeMatchRepo.findActiveMatchById(matchId);
+    if (!match) {
+      return { completed: false };
+    }
+
+    const hasTimedOut = match.forceTimeoutCheck();
+    if (hasTimedOut) {
+      await this.activeMatchRepo.deleteActiveMatch(matchId);
+      return { completed: true };
+    }
+
+    // Clock deducted but still ongoing, update state
+    await this.activeMatchRepo.updateActiveMatchState(match);
+    return { completed: false };
   }
 
   async resign(
@@ -60,15 +80,12 @@ export class ActiveMatchService {
       return { completed: false };
     }
 
-    // Resignation immediately ends the game; clean up the active match cache
     await this.activeMatchRepo.deleteActiveMatch(matchId);
-
     return { completed: true };
   }
 
   private async initializeMatch(matchFoundEvent: MatchFound): Promise<void> {
     const activeMatch = new ActiveMatch(matchFoundEvent);
-
     await this.activeMatchRepo.saveActiveMatch(activeMatch);
   }
 }

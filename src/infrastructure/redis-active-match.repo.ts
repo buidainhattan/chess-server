@@ -18,7 +18,10 @@ export class RedisActiveMatchRepo implements IActiveMatchRepo {
       sideToMove: activeMatch.sideToMove,
       moveHistory: JSON.stringify(activeMatch.moveHistory),
       status: activeMatch.status,
-      winner: activeMatch.winner ?? "", // Redis hSet values should be strings
+      winner: activeMatch.winner ?? "",
+      whiteTimeLeftMs: activeMatch.whiteTimeLeftMs.toString(),
+      blackTimeLeftMs: activeMatch.blackTimeLeftMs.toString(),
+      lastMoveAt: activeMatch.lastMoveAt.toISOString(),
     });
   }
 
@@ -26,14 +29,15 @@ export class RedisActiveMatchRepo implements IActiveMatchRepo {
     newActiveMatchState: ActiveMatch,
   ): Promise<void> {
     const key = this.keyCrafter(newActiveMatchState.id);
-    const newState = {
+    await this.redisClient.hSet(key, {
       sideToMove: newActiveMatchState.sideToMove,
       moveHistory: JSON.stringify(newActiveMatchState.moveHistory),
       status: newActiveMatchState.status,
-      winner: newActiveMatchState.winner ?? "", // Redis hSet values should be strings
-    };
-
-    await this.redisClient.hSet(key, newState);
+      winner: newActiveMatchState.winner ?? "",
+      whiteTimeLeftMs: newActiveMatchState.whiteTimeLeftMs.toString(),
+      blackTimeLeftMs: newActiveMatchState.blackTimeLeftMs.toString(),
+      lastMoveAt: newActiveMatchState.lastMoveAt.toISOString(),
+    });
   }
 
   async findActiveMatchById(matchId: string): Promise<ActiveMatch | null> {
@@ -41,18 +45,22 @@ export class RedisActiveMatchRepo implements IActiveMatchRepo {
     const data = await this.redisClient.hGetAll(key);
     if (!data || Object.keys(data).length === 0) return null;
 
-    // Reconstruct instance to preserve domain methods and status tracking
     const match = new ActiveMatch({
       id: matchId,
       playerOneId: data.playerOneId as string,
       playerTwoId: data.playerTwoId as string,
-      foundAt: new Date(), // placeholder — required by MatchFound shape, unused post-hydration
+      foundAt: new Date(),
     });
     match.sideToMove = data.sideToMove as Side;
     match.startAt = new Date(data.startAt as string);
     match.moveHistory = JSON.parse(data.moveHistory as string);
     match.status = data.status as MatchStatus;
     match.winner = (data.winner as Side) || null;
+
+    // Hydrate the clock properties
+    match.whiteTimeLeftMs = parseInt(data.whiteTimeLeftMs as string, 10);
+    match.blackTimeLeftMs = parseInt(data.blackTimeLeftMs as string, 10);
+    match.lastMoveAt = new Date(data.lastMoveAt as string);
 
     return match;
   }
