@@ -1,6 +1,6 @@
 import type { Server, Socket } from "socket.io";
 import type { ActiveMatchService } from "../application/active-match.service.js";
-import type { Side } from "../domain/shared/side.type.js";
+import type { Side } from "../domain/shared/type/side.type.js";
 
 export function registerActiveMatchHandler(
   io: Server,

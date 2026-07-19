@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import type { IActiveMatchRepo } from "../domain/active-match/iactive-match.repo.js";
-import type { Side } from "../domain/shared/side.type.js";
+import type { Side } from "../domain/shared/type/side.type.js";
 import { MatchFound } from "../domain/shared/match-found.event.js";
 import { ActiveMatch } from "../domain/active-match/active-match.entity.js";
 
@@ -24,7 +24,7 @@ export class ActiveMatchService {
 
   async makeMove(
     matchId: string,
-    sideToMove: Side,
+    playerId: string,
     move: string,
   ): Promise<{ completed: boolean }> {
     const match = await this.activeMatchRepo.findActiveMatchById(matchId);
@@ -32,12 +32,14 @@ export class ActiveMatchService {
       return { completed: false };
     }
 
-    const state = match.validate(sideToMove, move);
-
-    if (state) {
+    const isValid = match.validate(playerId, move);
+    if (!isValid) {
+      return { completed: false };
     }
 
-    return { completed: state };
+    await this.activeMatchRepo.updateActiveMatchState(match);
+
+    return { completed: true };
   }
 
   private async initializeMatch(matchFoundEvent: MatchFound): Promise<void> {

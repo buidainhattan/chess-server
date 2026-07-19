@@ -1,4 +1,4 @@
-import type { Side } from "../shared/side.type.js";
+import type { Side } from "../shared/type/side.type.js";
 import type { ActiveMatch } from "./active-match.entity.js";
 
 export interface IActiveMatchRepo {
