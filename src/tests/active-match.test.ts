@@ -69,7 +69,6 @@ describe("ActiveMatchService", () => {
         eventEmitter.emit(MatchFound.NAME, event);
         await new Promise(process.nextTick);
 
-        // player-2 (Black) tries to move first, but it is player-1's (White) turn
         const result = await service.makeMove("match-1", "player-2", "e5");
 
         expect(result.completed).toBe(false);
@@ -82,7 +81,6 @@ describe("ActiveMatchService", () => {
         eventEmitter.emit(MatchFound.NAME, event);
         await new Promise(process.nextTick);
 
-        // e5 is syntactically correct but physically illegal for White on turn 1
         const result = await service.makeMove("match-1", "player-1", "e5");
 
         expect(result.completed).toBe(false);
@@ -108,6 +106,153 @@ describe("ActiveMatchService", () => {
         const matchState = await repo.findActiveMatchById("match-1");
         expect(matchState?.moveHistory).toEqual(["e4", "e5", "Nf3"]);
       });
+    });
+
+    describe("game resolution states", () => {
+      it("should transition status to checkmate and delete match when terminal move is played", async () => {
+        const { mockRedisRepo, service } = makeService();
+        const hydratedEvent = new MatchFound("match-1", "player-1", "player-2");
+
+        const { ActiveMatch } =
+          await import("../domain/active-match/active-match.entity.js");
+        const match = new ActiveMatch(hydratedEvent);
+        // Fool's Mate setup: White is about to get checkmated by Black's Queen
+        match.moveHistory = ["f3", "e5", "g4"];
+        match.sideToMove = "black";
+
+        jest
+          .spyOn(mockRedisRepo, "findActiveMatchById")
+          .mockResolvedValue(match);
+
+        const result = await service.makeMove("match-1", "player-2", "Qh4#");
+
+        expect(result.completed).toBe(true);
+        expect(match.status).toBe("checkmate");
+        expect(match.winner).toBe("black");
+        expect(mockRedisRepo.deleteActiveMatch).toHaveBeenCalledWith("match-1");
+      });
+
+      it("should transition status to stalemate and delete match when drawing move is played", async () => {
+        const { mockRedisRepo, service } = makeService();
+        const hydratedEvent = new MatchFound("match-1", "player-1", "player-2");
+
+        const { ActiveMatch } =
+          await import("../domain/active-match/active-match.entity.js");
+        const match = new ActiveMatch(hydratedEvent);
+        // Standard fast stalemate sequence setup
+        match.moveHistory = [
+          "e3",
+          "a5",
+          "Qh5",
+          "Ra6",
+          "Qxa5",
+          "h5",
+          "h4",
+          "Rah6",
+          "Qxc7",
+          "f6",
+          "Qxd7+",
+          "Kf7",
+          "Qxb7",
+          "Qd3",
+          "Qxb8",
+          "Qh7",
+          "Qxc8",
+          "Kg6",
+          "Qe6",
+        ];
+        match.sideToMove = "black";
+
+        jest
+          .spyOn(mockRedisRepo, "findActiveMatchById")
+          .mockResolvedValue(match);
+
+        const result = await service.makeMove("match-1", "player-2", "c5");
+
+        expect(result.completed).toBe(true);
+        expect(match.status).toBe("stalemate");
+        expect(match.winner).toBeNull();
+        expect(mockRedisRepo.deleteActiveMatch).toHaveBeenCalledWith("match-1");
+      });
+
+      it("should block any further moves once the status is no longer ongoing", async () => {
+        const { mockRedisRepo, service } = makeService();
+        const hydratedEvent = new MatchFound("match-1", "player-1", "player-2");
+
+        const { ActiveMatch } =
+          await import("../domain/active-match/active-match.entity.js");
+        const match = new ActiveMatch(hydratedEvent);
+        match.status = "checkmate";
+        match.winner = "black";
+
+        jest
+          .spyOn(mockRedisRepo, "findActiveMatchById")
+          .mockResolvedValue(match);
+
+        const result = await service.makeMove("match-1", "player-1", "e4");
+        expect(result.completed).toBe(false);
+      });
+    });
+  });
+
+  describe("resign", () => {
+    it("should return completed false if the match does not exist", async () => {
+      const { service } = makeService();
+      const result = await service.resign("non-existent-id", "player-1");
+      expect(result.completed).toBe(false);
+    });
+
+    it("should successfully allow playerOne to resign and cleanly end the match", async () => {
+      const { mockRedisRepo, service } = makeService();
+      const hydratedEvent = new MatchFound("match-1", "player-1", "player-2");
+
+      const { ActiveMatch } =
+        await import("../domain/active-match/active-match.entity.js");
+      const match = new ActiveMatch(hydratedEvent);
+
+      jest.spyOn(mockRedisRepo, "findActiveMatchById").mockResolvedValue(match);
+
+      const result = await service.resign("match-1", "player-1");
+
+      expect(result.completed).toBe(true);
+      expect(match.status).toBe("resign");
+      expect(match.winner).toBe("black");
+      expect(mockRedisRepo.deleteActiveMatch).toHaveBeenCalledWith("match-1");
+    });
+
+    it("should successfully allow playerTwo to resign and cleanly end the match", async () => {
+      const { mockRedisRepo, service } = makeService();
+      const hydratedEvent = new MatchFound("match-1", "player-1", "player-2");
+
+      const { ActiveMatch } =
+        await import("../domain/active-match/active-match.entity.js");
+      const match = new ActiveMatch(hydratedEvent);
+
+      jest.spyOn(mockRedisRepo, "findActiveMatchById").mockResolvedValue(match);
+
+      const result = await service.resign("match-1", "player-2");
+
+      expect(result.completed).toBe(true);
+      expect(match.status).toBe("resign");
+      expect(match.winner).toBe("white");
+      expect(mockRedisRepo.deleteActiveMatch).toHaveBeenCalledWith("match-1");
+    });
+
+    it("should reject resignation from an external playerId who is not in the match", async () => {
+      const { mockRedisRepo, service } = makeService();
+      const hydratedEvent = new MatchFound("match-1", "player-1", "player-2");
+
+      const { ActiveMatch } =
+        await import("../domain/active-match/active-match.entity.js");
+      const match = new ActiveMatch(hydratedEvent);
+
+      jest.spyOn(mockRedisRepo, "findActiveMatchById").mockResolvedValue(match);
+
+      const result = await service.resign("match-1", "malicious-intruder");
+
+      expect(result.completed).toBe(false);
+      expect(match.status).toBe("ongoing");
+      expect(mockRedisRepo.deleteActiveMatch).not.toHaveBeenCalled();
     });
   });
 });
