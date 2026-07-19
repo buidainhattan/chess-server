@@ -33,6 +33,22 @@ export function registerActiveMatchHandler(
     },
   );
 
+  socket.on("active-match:resign", async (payload: { matchId: string }) => {
+    const { matchId } = payload;
+    const playerId = socket.data.playerId as string;
+
+    const result = await activeMatchService.resign(matchId, playerId);
+
+    if (!result.completed) {
+      socket.emit("active-match:error", { message: "Invalid match or player" });
+      return;
+    }
+
+    io.to(`match:${matchId}`).emit("active-match:resigned", {
+      message: "Resigned successfully",
+    });
+  });
+
   // When a player connects or starts a match, make sure they join their match room
   socket.on("active-match:join-room", (payload: { matchId: string }) => {
     socket.join(`match:${payload.matchId}`);

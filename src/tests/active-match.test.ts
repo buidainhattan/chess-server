@@ -264,7 +264,7 @@ describe("ActiveMatchService", () => {
         const { ActiveMatch } =
           await import("../domain/active-match/active-match.entity.js");
         const match = new ActiveMatch(hydratedEvent);
-        match.whiteTimeLeftMs = 60000;
+        match.timeLeftMs.white = 60000;
         // Set clock anchor back 10 seconds ago
         match.lastMoveAt = new Date(Date.now() - 10000);
 
@@ -275,7 +275,7 @@ describe("ActiveMatchService", () => {
         const result = await service.makeMove("match-1", "player-1", "e4");
 
         expect(result.completed).toBe(true);
-        expect(match.whiteTimeLeftMs).toBeLessThanOrEqual(50000);
+        expect(match.timeLeftMs.white).toBeLessThanOrEqual(50000);
         expect(match.status).toBe("ongoing");
       });
 
@@ -286,7 +286,7 @@ describe("ActiveMatchService", () => {
         const { ActiveMatch } =
           await import("../domain/active-match/active-match.entity.js");
         const match = new ActiveMatch(hydratedEvent);
-        match.whiteTimeLeftMs = 5000; // 5 seconds left
+        match.timeLeftMs.white = 5000; // 5 seconds left
         match.lastMoveAt = new Date(Date.now() - 6000); // 6 seconds elapsed
 
         jest
@@ -310,7 +310,7 @@ describe("ActiveMatchService", () => {
         const { ActiveMatch } =
           await import("../domain/active-match/active-match.entity.js");
         const match = new ActiveMatch(hydratedEvent);
-        match.whiteTimeLeftMs = 10000;
+        match.timeLeftMs.white = 10000;
         match.lastMoveAt = new Date(Date.now() - 15000); // Exceeded 10s pool
 
         jest
@@ -332,7 +332,7 @@ describe("ActiveMatchService", () => {
         const { ActiveMatch } =
           await import("../domain/active-match/active-match.entity.js");
         const match = new ActiveMatch(hydratedEvent);
-        match.whiteTimeLeftMs = 60000;
+        match.timeLeftMs.white = 60000;
         match.lastMoveAt = new Date(Date.now() - 5000); // only 5s elapsed
 
         jest

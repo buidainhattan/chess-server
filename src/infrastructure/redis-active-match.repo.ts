@@ -19,8 +19,8 @@ export class RedisActiveMatchRepo implements IActiveMatchRepo {
       moveHistory: JSON.stringify(activeMatch.moveHistory),
       status: activeMatch.status,
       winner: activeMatch.winner ?? "",
-      whiteTimeLeftMs: activeMatch.whiteTimeLeftMs.toString(),
-      blackTimeLeftMs: activeMatch.blackTimeLeftMs.toString(),
+      whiteTimeLeftMs: activeMatch.timeLeftMs.white.toString(),
+      blackTimeLeftMs: activeMatch.timeLeftMs.black.toString(),
       lastMoveAt: activeMatch.lastMoveAt.toISOString(),
     });
   }
@@ -34,8 +34,8 @@ export class RedisActiveMatchRepo implements IActiveMatchRepo {
       moveHistory: JSON.stringify(newActiveMatchState.moveHistory),
       status: newActiveMatchState.status,
       winner: newActiveMatchState.winner ?? "",
-      whiteTimeLeftMs: newActiveMatchState.whiteTimeLeftMs.toString(),
-      blackTimeLeftMs: newActiveMatchState.blackTimeLeftMs.toString(),
+      whiteTimeLeftMs: newActiveMatchState.timeLeftMs.white.toString(),
+      blackTimeLeftMs: newActiveMatchState.timeLeftMs.black.toString(),
       lastMoveAt: newActiveMatchState.lastMoveAt.toISOString(),
     });
   }
@@ -58,8 +58,9 @@ export class RedisActiveMatchRepo implements IActiveMatchRepo {
     match.winner = (data.winner as Side) || null;
 
     // Hydrate the clock properties
-    match.whiteTimeLeftMs = parseInt(data.whiteTimeLeftMs as string, 10);
-    match.blackTimeLeftMs = parseInt(data.blackTimeLeftMs as string, 10);
+    const whiteTimeLeftMs = parseInt(data.whiteTimeLeftMs as string, 10);
+    const blackTimeLeftMs = parseInt(data.blackTimeLeftMs as string, 10);
+    match.timeLeftMs = { white: whiteTimeLeftMs, black: blackTimeLeftMs };
     match.lastMoveAt = new Date(data.lastMoveAt as string);
 
     return match;

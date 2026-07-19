@@ -12,23 +12,23 @@ export class ActiveMatch {
   status: MatchStatus = "ongoing";
   winner: Side | null = null;
   startAt: Date = new Date();
-
-  // Clock metrics (Time Control: defaults to 5 minutes / 300000 ms per player)
-  whiteTimeLeftMs: number = 300000;
-  blackTimeLeftMs: number = 300000;
+  timeLeftMs: Record<Side, number> = { white: 300000, black: 300000 };
   lastMoveAt: Date = new Date();
 
   private _chess: Chess | null = null;
 
-  constructor(matchFound: MatchFound) {
+  constructor(matchFound: MatchFound, initialTime?: number) {
     this.id = matchFound.id;
     this.playerOneId = matchFound.playerOneId;
     this.playerTwoId = matchFound.playerTwoId;
-    this.lastMoveAt = this.startAt;
+
+    if (initialTime) {
+      this.timeLeftMs = { white: initialTime, black: initialTime };
+    }
   }
 
   validate(playerId: string, move: string): boolean {
-    if (this.status !== "ongoing") {
+    if (!this.isOngoing()) {
       return false;
     }
 
@@ -36,7 +36,6 @@ export class ActiveMatch {
       return false;
     }
 
-    // Run the private time validation check first
     if (!this.checkTime()) {
       return false;
     }
@@ -51,14 +50,14 @@ export class ActiveMatch {
 
   // Explicit timeout check method exposed for passive system/client ticks
   forceTimeoutCheck(): boolean {
-    if (this.status !== "ongoing") {
+    if (!this.isOngoing()) {
       return false;
     }
     return !this.checkTime();
   }
 
   resign(playerId: string): boolean {
-    if (this.status !== "ongoing") {
+    if (!this.isOngoing()) {
       return false;
     }
 
@@ -76,26 +75,19 @@ export class ActiveMatch {
     return true;
   }
 
+  // <========== IMPORTANT INSTANCE PRIVATE METHOD ==========>
+
   private checkTime(): boolean {
     const now = new Date();
     const elapsedMs = now.getTime() - this.lastMoveAt.getTime();
+    const side = this.sideToMove;
 
-    if (this.sideToMove === "white") {
-      this.whiteTimeLeftMs -= elapsedMs;
-      if (this.whiteTimeLeftMs <= 0) {
-        this.whiteTimeLeftMs = 0;
-        this.status = "timeout";
-        this.winner = "black";
-        return false;
-      }
-    } else {
-      this.blackTimeLeftMs -= elapsedMs;
-      if (this.blackTimeLeftMs <= 0) {
-        this.blackTimeLeftMs = 0;
-        this.status = "timeout";
-        this.winner = "white";
-        return false;
-      }
+    this.timeLeftMs[side] -= elapsedMs;
+    if (this.timeLeftMs[side] <= 0) {
+      this.timeLeftMs[side] = 0;
+      this.status = "timeout";
+      this.winner = this.opposite(side);
+      return false;
     }
 
     return true;
@@ -110,27 +102,22 @@ export class ActiveMatch {
   private validateMove(move: string): boolean {
     try {
       const chess = this.getOrHydrateChessEngine();
-      const validMove = chess.move(move);
-      if (!validMove) return false;
-
-      chess.undo();
-      return true;
+      return !!chess.move(move); // no undo — kept if legal, never applied if not
     } catch {
       return false;
     }
   }
 
   private applyMove(move: string): void {
-    const chess = this.getOrHydrateChessEngine();
-    chess.move(move);
+    const chess = this.getOrHydrateChessEngine(); // already has the move applied
     this.moveHistory.push(move);
 
     this.matchEnd(chess);
 
     this.lastMoveAt = new Date();
 
-    if (this.status === "ongoing") {
-      this.sideToMove = this.sideToMove === "white" ? "black" : "white";
+    if (this.isOngoing()) {
+      this.sideToMove = this.opposite(this.sideToMove);
     }
   }
 
@@ -165,5 +152,15 @@ export class ActiveMatch {
     }
 
     return this._chess;
+  }
+
+  // <========== HELPER PRIVATE METHODS ==========>
+
+  private isOngoing(): boolean {
+    return this.status === "ongoing";
+  }
+
+  private opposite(side: Side): Side {
+    return side === "white" ? "black" : "white";
   }
 }
